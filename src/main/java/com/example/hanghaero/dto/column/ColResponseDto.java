@@ -1,8 +1,6 @@
 package com.example.hanghaero.dto.column;
 
-import org.hibernate.annotations.Columns;
-
-import com.example.hanghaero.entity.Col;
+import com.example.hanghaero.entity.Column;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,7 +16,7 @@ public class ColResponseDto {
 	private int position;
 	private Long boardId;
 
-	public ColResponseDto(Col columns) {
+	public ColResponseDto(Column columns) {
 		this.title = columns.getTitle();
 		this.position = columns.getPosition();
 		this.boardId = columns.getBoard().getId();

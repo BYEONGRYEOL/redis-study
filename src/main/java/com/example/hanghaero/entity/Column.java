@@ -1,8 +1,8 @@
 package com.example.hanghaero.entity;
 
-import jakarta.persistence.CascadeType;
+import com.example.hanghaero.dto.column.ColRequestDto;
+
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -16,23 +16,32 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
-@Table(name = "boardusers")
 @NoArgsConstructor
-public class BoardUser {
+@Table(name = "columns")
+public class Column {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+	Long columnId;
 
-	@ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
-	@JoinColumn(name = "user_id")
-	private User user;
+	String title;
 
-	@ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
+	int position;
+
+	@ManyToOne
 	@JoinColumn(name = "board_id")
 	private Board board;
 
-	public BoardUser(Board board, User user) {
-		this.user = user;
+	public Column(Board board, ColRequestDto requestDto, int lastPosition) {
+		this.title = requestDto.getTitle();
+		this.position = lastPosition + 1;
 		this.board = board;
+	}
+
+	public void update(ColRequestDto requestDto) {
+		this.title = requestDto.getTitle();
+	}
+
+	public void updatePosition(int newPosition) {
+		this.position = newPosition;
 	}
 }

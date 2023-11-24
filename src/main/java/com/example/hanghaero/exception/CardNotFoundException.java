@@ -1,4 +1,4 @@
-package com.example.hanghaero.exception.entity.comment;
+package com.example.hanghaero.exception;
 
 public class CardNotFoundException extends RuntimeException {
 	public CardNotFoundException() {
