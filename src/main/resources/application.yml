@@ -3,4 +3,4 @@ spring:
     active: mysql
     group:
       mysql:
-      redis:
+    include: redis

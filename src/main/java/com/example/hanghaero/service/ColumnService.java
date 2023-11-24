@@ -1,5 +1,9 @@
 package com.example.hanghaero.service;
 
+import java.util.concurrent.TimeUnit;
+
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,18 +17,21 @@ import com.example.hanghaero.repository.ColumnRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j(topic = "ColumnService")
 public class ColumnService {
 	private final BoardRepository boardRepository;
 	private final ColumnRepository columnRepository;
+	private final RedissonClient redissonClient;
 
 	public ColResponseDto createColumn(Long boardId, ColRequestDto requestDto) {
 		Board findBoard = findBoard(boardId);
 		int position = 0;
-		if (columnRepository.lastPosition(boardId) != null) {
-			position = columnRepository.lastPosition(boardId);
+		if (columnRepository.getLastPositon(boardId) != null) {
+			position = columnRepository.getLastPositon(boardId);
 		}
 		return new ColResponseDto(columnRepository.save(
 			new Column(findBoard, requestDto, position))
@@ -57,23 +64,48 @@ public class ColumnService {
 
 	@Transactional
 	public Object moveColumn(Long boardId, Long columnId, int newPosition) {
-		findBoard(boardId); //보드조회
-		Column findColumnObject = findColumn(columnId); //칼럼조회
-		System.out.println("현재 칼럼의 위치 = " + findColumnObject.getPosition());
-		Column currentColumns = columnRepository.getPosition(newPosition);
-		if (currentColumns != null) {
+		Column findColumn = findColumn(columnId); //칼럼조회
+		log.info("현재 위치 " + findColumn.getPosition());
+		log.info("변경할 위치" + newPosition);
+		Column targetColumn = columnRepository.findByPosition(newPosition);
+		if (targetColumn != null) {
 			try {
-				// "중복된 칼럼으로 기존에 위차한 칼럼 바뀔 칼럼과 change");
-				currentColumns.updatePosition(findColumnObject.getPosition());
+				targetColumn.updatePosition(findColumn.getPosition());
 			} catch (Exception e) {
-				e.getMessage();
+				log.error("e.getMessage() :" + e.getMessage());
 			}
 		}
 		try {
-			findColumnObject.updatePosition(newPosition);
+			findColumn.updatePosition(newPosition);
 		} catch (Exception e) {
-			e.getMessage();
+			log.error("e.getMessage() :" + e.getMessage());
 		}
+
+		return ResponseEntity.ok().body(columnId + "번 칼럼 이동");
+	}
+
+	@Transactional
+	public Object moveColumnWithRedis(Long boardId, Long columnId, int newPosition) {
+		Column findColumn = findColumn(columnId); //칼럼조회
+		RLock lock = redissonClient.getLock(String.format("moveColumn:id:%d", columnId));
+		try {
+			boolean available = lock.tryLock(10, 1, TimeUnit.SECONDS);
+			if (!available) {
+				log.info("redisson getLock timeout");
+			}
+			log.info("현재 위치 " + findColumn.getPosition());
+			log.info("변경할 위치" + newPosition);
+			Column targetColumn = columnRepository.findByPosition(newPosition);
+			if (targetColumn != null) {
+				targetColumn.updatePosition(findColumn.getPosition());
+			}
+			findColumn.updatePosition(newPosition);
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		} finally {
+			lock.unlock();
+		}
+
 		return ResponseEntity.ok().body(columnId + "번 칼럼 이동");
 	}
 

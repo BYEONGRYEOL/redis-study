@@ -9,8 +9,8 @@ import com.example.hanghaero.entity.Column;
 @Repository
 public interface ColumnRepository extends JpaRepository<Column, Long> {
 	@Query(value = "select * from columns where position=? ", nativeQuery = true)
-	Column getPosition(int position);
+	Column findByPosition(int position);
 
 	@Query(value = "select position from columns where board_id=? order By position DESC limit 1", nativeQuery = true)
-	Integer lastPosition(Long boardId);
+	Integer getLastPositon(Long boardId);
 }
